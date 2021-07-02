@@ -21,7 +21,7 @@ impl BitSet {
         let words = ((len - 1) >> WORD_INDEX_SHIFTS) + 1;
         let last_word_set = {
             let last_bit_i = (len - 1) & BIT_INDEX_MASK;
-            !((!0 - 1) << last_bit_i)
+            !(!1 << last_bit_i)
         };
 
         let words = if initial_v {
@@ -46,9 +46,12 @@ impl BitSet {
     #[inline]
     fn locate(&self, i: usize) -> (usize, usize) {
         let word_i = i >> WORD_INDEX_SHIFTS;
-        debug_assert!(word_i < self.words.len(), "index out of bounds");
         let mask = 1 << (i & BIT_INDEX_MASK);
-        debug_assert!(self.last_word_set & mask != 0, "index out of bounds");
+        let last_word_i = self.words.len() - 1;
+        debug_assert!(
+            word_i < last_word_i || (word_i == last_word_i && self.last_word_set & mask != 0),
+            "index out of bounds"
+        );
         (word_i, mask)
     }
 
@@ -103,10 +106,11 @@ impl BitSet {
 
         let last_word_set = {
             let last_bit_i = (len - 1) & BIT_INDEX_MASK;
-            !((!0 - 1) << last_bit_i)
+            !(!1 << last_bit_i)
         };
 
-        self.words.truncate(words);
+        self.words.set_len(words);
+        self.words.shrink_to_fit();
         self.last_word_set = last_word_set;
     }
 
